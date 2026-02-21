@@ -129,4 +129,61 @@ export class UserController {
             });
         }
     }
+
+    // Update Profile (Self)
+    async updateProfile(req: any, res: Response) {
+        try {
+            const userId = req.user._id;
+            const updateData = { ...req.body };
+
+            if (req.file) {
+                updateData.profilePicture = `/uploads/${req.file.filename}`;
+            }
+
+            const updatedUser = await userService.updateUser(userId, updateData);
+
+            return res.status(200).json({
+                success: true,
+                data: updatedUser,
+                message: "Profile updated successfully"
+            });
+        } catch (error: any) {
+            return res.status(error.statusCode || 500).json({
+                success: false,
+                message: error.message || "Failed to update profile"
+            });
+        }
+    }
+
+    // Search users for messaging
+    async searchUsersForMessaging(req: any, res: Response) {
+        try {
+            const { q } = req.query;
+            const currentUserId = req.user._id;
+
+            if (!q || q.length < 2) {
+                return res.status(200).json({ success: true, data: [] });
+            }
+
+            const users = await UserModel.find({
+                _id: { $ne: currentUserId },
+                $or: [
+                    { fullName: { $regex: q, $options: 'i' } },
+                    { email: { $regex: q, $options: 'i' } }
+                ]
+            })
+                .select('fullName email profilePicture isInfluencer role')
+                .limit(10);
+
+            return res.status(200).json({
+                success: true,
+                data: users
+            });
+        } catch (error: any) {
+            return res.status(500).json({
+                success: false,
+                message: error.message || "Failed to search users"
+            });
+        }
+    }
 }
