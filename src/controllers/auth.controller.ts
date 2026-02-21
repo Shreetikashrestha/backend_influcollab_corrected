@@ -27,6 +27,7 @@ export class AuthController {
                 email: newUser?.email ?? "",
                 fullName: newUser?.fullName ?? "",
                 isInfluencer: newUser?.isInfluencer ?? false,
+                role: newUser?.role ?? "user",
                 createdAt: newUser?.createdAt ?? null
             };
 
@@ -62,6 +63,7 @@ export class AuthController {
                 email: user?.email ?? "",
                 fullName: user?.fullName ?? "",
                 isInfluencer: user?.isInfluencer ?? false,
+                role: user?.role ?? "user",
                 createdAt: user?.createdAt ?? null
             };
 
@@ -123,6 +125,24 @@ export class AuthController {
             return res.status(error.statusCode || 500).json({
                 success: false,
                 message: error.message || "Something went wrong"
+            });
+        }
+    }
+
+    async whoami(req: any, res: Response) {
+        try {
+            const user = req.user;
+            if (!user) throw new HttpError(401, "Not authenticated");
+
+            return res.status(200).json({
+                success: true,
+                data: user,
+                message: "User authenticated"
+            });
+        } catch (error: any) {
+            return res.status(error.statusCode || 500).json({
+                success: false,
+                message: error.message || "Internal Server Error"
             });
         }
     }
