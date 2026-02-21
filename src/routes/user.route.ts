@@ -1,7 +1,8 @@
 import { Router } from "express";
 import { UserController } from "../controllers/user.controller";
 import { AuthController } from "../controllers/auth.controller";
-// import { authorizedMiddleware } from "../../middleware/authorization.middleware";
+import { upload } from "../middleware/upload.middleware";
+import { authorizedMiddleware } from "../middleware/authorization.middleware";
 const router = Router();
 
 // router.use(authorizedMiddleware);
@@ -13,6 +14,12 @@ const authController = new AuthController();
 
 // Get all influencers (public or protected as needed)
 router.get('/influencers', userController.getInfluencers);
+
+// Update user profile (Self)
+router.put('/update', authorizedMiddleware, upload.single('profilePicture'), userController.updateProfile);
+
+// Search users for messaging
+router.get('/search-messaging', authorizedMiddleware, userController.searchUsersForMessaging);
 
 // Admin routes
 router.get('/admin/all', userController.getAllUsers);
