@@ -6,12 +6,16 @@ import { HttpError } from "../errors/http-error";
 import { JWT_SECRET } from "../config/index";
 import { UserModel } from "../models/user.model";
 
-let userRepository = new UserRepository();
-
 export class UserService {
+    private userRepository: UserRepository;
+
+    constructor(userRepository?: UserRepository) {
+        this.userRepository = userRepository || new UserRepository();
+    }
+
     async registerUser(data: CreateUserDTO) {
         // Check for duplicate email
-        const checkEmail = await userRepository.getUserByEmail(data.email);
+        const checkEmail = await this.userRepository.getUserByEmail(data.email);
         if (checkEmail) {
             throw new HttpError(403, "Email already in use");
         }
@@ -27,13 +31,13 @@ export class UserService {
         data.password = hashedPassword;
 
         // Create new user
-        const newUser = await userRepository.createUser(data);
+        const newUser = await this.userRepository.createUser(data);
 
         return newUser;
     }
 
     async loginUser(data: LoginUserDTO) {
-        const existingUser = await userRepository.getUserByEmail(data.email);
+        const existingUser = await this.userRepository.getUserByEmail(data.email);
         if (!existingUser) {
             throw new HttpError(404, "User not found");
         }
@@ -57,11 +61,11 @@ export class UserService {
     }
 
     async getAllUsers(page: number = 1, limit: number = 10) {
-        return await userRepository.getAllUsers(page, limit);
+        return await this.userRepository.getAllUsers(page, limit);
     }
 
     async getUserById(id: string) {
-        const user = await userRepository.getUserById(id);
+        const user = await this.userRepository.getUserById(id);
         if (!user) {
             throw new HttpError(404, "User not found");
         }
@@ -69,7 +73,7 @@ export class UserService {
     }
 
     async updateUser(id: string, data: Partial<any>) {
-        const user = await userRepository.updateOneUser(id, data);
+        const user = await this.userRepository.updateOneUser(id, data);
         if (!user) {
             throw new HttpError(404, "User not found");
         }
@@ -77,7 +81,7 @@ export class UserService {
     }
 
     async deleteUser(id: string) {
-        const result = await userRepository.deleteOneUser(id);
+        const result = await this.userRepository.deleteOneUser(id);
         if (!result) {
             throw new HttpError(404, "User not found");
         }
@@ -85,7 +89,7 @@ export class UserService {
     }
 
     async forgotPassword(email: string) {
-        const user = await userRepository.getUserByEmail(email);
+        const user = await this.userRepository.getUserByEmail(email);
         if (!user) {
             // Return null to hide user existence in controller
             return null;
@@ -99,7 +103,7 @@ export class UserService {
         const hashedToken = await bcrypt.hash(resetToken, 10);
         const resetExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
 
-        await userRepository.updateOneUser(user._id.toString(), {
+        await this.userRepository.updateOneUser(user._id.toString(), {
             resetPasswordToken: hashedToken,
             resetPasswordExpires: resetExpires
         } as any);
