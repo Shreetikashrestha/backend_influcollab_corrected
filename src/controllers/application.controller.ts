@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import mongoose from "mongoose";
 import { ApplicationModel } from "../models/application.model";
 import { CampaignModel } from "../models/campaign.model";
 import { UserModel } from "../models/user.model";
@@ -7,7 +8,7 @@ export class ApplicationController {
     // Create application (alternative to joinCampaign)
     async createApplication(req: Request, res: Response) {
         try {
-            const userId = (req as any).userId;
+            const userId = (req as any).user._id;
             const { campaignId, message } = req.body;
 
             if (!campaignId) {
@@ -71,7 +72,7 @@ export class ApplicationController {
     // Get applications for a specific campaign (Brand only)
     async getCampaignApplications(req: Request, res: Response) {
         try {
-            const userId = (req as any).userId;
+            const userId = (req as any).user._id;
             const { campaignId } = req.params;
             const { status } = req.query;
 
@@ -84,7 +85,8 @@ export class ApplicationController {
                 });
             }
 
-            if (campaign.creatorId.toString() !== userId) {
+            // Convert both to strings for comparison
+            if (campaign.creatorId.toString() !== userId.toString()) {
                 return res.status(403).json({
                     success: false,
                     message: "You don't have permission to view these applications"
@@ -119,7 +121,7 @@ export class ApplicationController {
     // Get applications submitted by the logged-in influencer
     async getInfluencerApplications(req: Request, res: Response) {
         try {
-            const userId = (req as any).userId;
+            const userId = (req as any).user._id;
             const { status } = req.query;
 
             const filter: any = { influencerId: userId };
@@ -148,9 +150,17 @@ export class ApplicationController {
     // Update application status (Brand only - Accept/Reject)
     async updateApplicationStatus(req: Request, res: Response) {
         try {
-            const userId = (req as any).userId;
+            const user = (req as any).user;
+            const userId = user._id;
             const { id: applicationId } = req.params;
             const { status } = req.body;
+
+            console.log('=== updateApplicationStatus Debug ===');
+            console.log('Full user object:', user);
+            console.log('User ID from token:', userId);
+            console.log('User ID type:', typeof userId, userId.constructor.name);
+            console.log('Application ID:', applicationId);
+            console.log('New status:', status);
 
             // Validate status
             if (!status || !['accepted', 'rejected'].includes(status)) {
@@ -163,19 +173,41 @@ export class ApplicationController {
             // Get application
             const application = await ApplicationModel.findById(applicationId);
             if (!application) {
+                console.log('Application not found');
                 return res.status(404).json({
                     success: false,
                     message: "Application not found"
                 });
             }
 
+            console.log('Application found:', {
+                _id: application._id,
+                brandId: application.brandId,
+                brandIdType: typeof application.brandId,
+                currentStatus: application.status
+            });
+
             // Verify the brand owns this application
-            if (application.brandId.toString() !== userId) {
+            // Convert both to strings for comparison
+            const brandIdStr = application.brandId.toString();
+            const userIdStr = userId.toString();
+
+            console.log('Permission check:', {
+                brandIdStr,
+                userIdStr,
+                matches: brandIdStr === userIdStr,
+                areEqual: brandIdStr === userIdStr
+            });
+
+            if (brandIdStr !== userIdStr) {
+                console.log('❌ Permission denied - IDs do not match');
                 return res.status(403).json({
                     success: false,
                     message: "You don't have permission to update this application"
                 });
             }
+
+            console.log('✅ Permission granted, updating status');
 
             // Update status
             application.status = status as 'accepted' | 'rejected';
@@ -184,6 +216,8 @@ export class ApplicationController {
             // Populate for response
             await application.populate('influencerId', 'fullName email');
             await application.populate('campaignId', 'title');
+
+            console.log('✅ Status updated successfully');
 
             return res.status(200).json({
                 success: true,
@@ -195,6 +229,132 @@ export class ApplicationController {
             return res.status(500).json({
                 success: false,
                 message: error.message || "Failed to update application status"
+            });
+        }
+    }
+
+    // Get single application by ID
+    async getApplicationById(req: Request, res: Response) {
+        try {
+            const user = (req as any).user;
+            const userId = user._id;
+            const { id: applicationId } = req.params;
+
+            console.log('=== getApplicationById Debug ===');
+            console.log('Full user object:', user);
+            console.log('User ID from token:', userId);
+            console.log('User ID type:', typeof userId, userId.constructor.name);
+            console.log('Application ID requested:', applicationId);
+
+            const application = await ApplicationModel.findById(applicationId)
+                .populate('influencerId', 'fullName email isInfluencer profilePicture bio')
+                .populate('campaignId', 'title brandName category budgetMin budgetMax deadline')
+                .populate('brandId', 'fullName email');
+
+            if (!application) {
+                console.log('Application not found');
+                return res.status(404).json({
+                    success: false,
+                    message: "Application not found"
+                });
+            }
+
+            console.log('Application found (raw):', {
+                _id: application._id,
+                brandId: application.brandId,
+                brandIdType: typeof application.brandId,
+                brandIdConstructor: application.brandId?.constructor?.name,
+                influencerId: application.influencerId,
+                influencerIdType: typeof application.influencerId,
+                status: application.status
+            });
+
+            // Check if user has permission to view this application
+            // Handle both populated and non-populated brandId/influencerId
+            const brandIdStr = (application.brandId as any)?._id 
+                ? (application.brandId as any)._id.toString() 
+                : application.brandId.toString();
+            
+            const influencerIdStr = (application.influencerId as any)?._id 
+                ? (application.influencerId as any)._id.toString() 
+                : application.influencerId.toString();
+
+            const userIdStr = userId.toString();
+
+            console.log('Permission check:', {
+                userIdStr,
+                brandIdStr,
+                influencerIdStr,
+                isBrand: brandIdStr === userIdStr,
+                isInfluencer: influencerIdStr === userIdStr
+            });
+
+            const isBrand = brandIdStr === userIdStr;
+            const isInfluencer = influencerIdStr === userIdStr;
+
+            if (!isBrand && !isInfluencer) {
+                console.log('❌ Permission denied - User is neither brand nor influencer for this application');
+                return res.status(403).json({
+                    success: false,
+                    message: "You don't have permission to view this application"
+                });
+            }
+
+            console.log('✅ Permission granted');
+            return res.status(200).json({
+                success: true,
+                application: application,
+            });
+        } catch (error: any) {
+            console.error('Error fetching application:', error);
+            return res.status(500).json({
+                success: false,
+                message: error.message || "Failed to fetch application"
+            });
+        }
+    }
+
+    // Get influencer stats
+    async getInfluencerStats(req: Request, res: Response) {
+        try {
+            const userId = (req as any).user._id;
+
+            // Use aggregation to count total and active campaigns
+            const stats = await ApplicationModel.aggregate([
+                { $match: { influencerId: new mongoose.Types.ObjectId(userId) } },
+                {
+                    $group: {
+                        _id: null,
+                        totalApplications: { $sum: 1 },
+                        activeCampaigns: {
+                            $sum: {
+                                $cond: [{ $in: ["$status", ["accepted", "pending"]] }, 1, 0]
+                            }
+                        },
+                        completedCampaigns: {
+                            $sum: {
+                                $cond: [{ $eq: ["$status", "accepted"] }, 1, 0] // logic for completed
+                            }
+                        }
+                    }
+                }
+            ]);
+
+            const result = stats.length > 0 ? stats[0] : {
+                totalApplications: 0,
+                activeCampaigns: 0,
+                completedCampaigns: 0
+            };
+
+            return res.status(200).json({
+                success: true,
+                data: result
+            });
+        } catch (error: any) {
+            console.error('Error fetching influencer stats:', error);
+            return res.status(500).json({
+                success: false,
+                message: error.message || "Failed to fetch stats"
             });
         }
     }
