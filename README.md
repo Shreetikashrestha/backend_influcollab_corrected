@@ -18,20 +18,42 @@ Backend API for Mobile App Year 3 Assignment built with Node.js, Express, TypeSc
 ```
 src/
 ├── config/           # Configuration files
+│   ├── index.ts     # Environment variables
+│   └── socket.ts    # Socket.io configuration
 ├── controllers/      # Request handlers
-│   └── admin/       # Admin-specific controllers
 ├── database/        # Database connection
 ├── dtos/            # Data Transfer Objects
 ├── errors/          # Custom error classes
 ├── middleware/      # Express middleware
 ├── models/          # MongoDB models
-├── repositories/    # Database repositories
+├── repositories/    # Database repositories (data access layer)
+│   ├── application.repository.ts
+│   ├── campaign.repository.ts
+│   ├── message.repository.ts
+│   ├── notification.repository.ts
+│   ├── payment.repository.ts
+│   ├── profile.repository.ts
+│   ├── review.repository.ts
+│   └── user.repository.ts
 ├── routes/          # API routes
-│   └── admin/      # Admin routes
 ├── services/        # Business logic
-├── types/           # TypeScript types
+├── tests/           # Test files
+│   ├── setup.ts    # Test configuration
+│   └── integration/ # Integration tests
+├── types/           # TypeScript type definitions
+├── app.ts           # Express app configuration
 └── index.ts         # Application entry point
 ```
+
+## Architecture
+
+The project follows a layered architecture pattern:
+
+1. **Routes** → Define API endpoints
+2. **Controllers** → Handle HTTP requests/responses
+3. **Services** → Business logic
+4. **Repositories** → Data access layer
+5. **Models** → Database schemas
 
 ## Setup
 
@@ -86,6 +108,15 @@ npm run dev
 ```bash
 # Development mode with hot reload
 npm run dev
+
+# Run tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run tests with coverage
+npm run test:coverage
 
 # Build for production
 npm run build
