@@ -1,10 +1,20 @@
 module.exports = {
     preset: 'ts-jest',
     testEnvironment: 'node',
-    testMatch: ['**/tests/**/*.test.ts'],
+    setupFilesAfterEnv: ['<rootDir>/src/tests/setup.ts'],
+    testMatch: ['**/tests/**/*.test.ts', '**/__tests__/**/*.test.ts'],
     verbose: true,
     forceExit: true,
     clearMocks: true,
     resetMocks: true,
     restoreMocks: true,
+    collectCoverageFrom: [
+        'src/**/*.ts',
+        '!src/**/*.d.ts',
+        '!src/tests/**',
+        '!src/index.ts',
+        '!src/app.ts',
+    ],
+    testPathIgnorePatterns: ['/node_modules/'],
+    coveragePathIgnorePatterns: ['/node_modules/', '/tests/'],
 };
