@@ -1,20 +1,29 @@
 module.exports = {
-    preset: 'ts-jest',
-    testEnvironment: 'node',
-    setupFilesAfterEnv: ['<rootDir>/src/tests/setup.ts'],
-    testMatch: ['**/tests/**/*.test.ts', '**/__tests__/**/*.test.ts'],
-    verbose: true,
-    forceExit: true,
-    clearMocks: true,
-    resetMocks: true,
-    restoreMocks: true,
-    collectCoverageFrom: [
-        'src/**/*.ts',
-        '!src/**/*.d.ts',
-        '!src/tests/**',
-        '!src/index.ts',
-        '!src/app.ts',
-    ],
-    testPathIgnorePatterns: ['/node_modules/'],
-    coveragePathIgnorePatterns: ['/node_modules/', '/tests/'],
+  preset: 'ts-jest',
+  testEnvironment: 'node',
+  roots: ['<rootDir>/tests'],
+  testMatch: ['**/*.test.ts'],
+  setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
+  collectCoverageFrom: [
+    'src/**/*.ts',
+    '!src/index.ts',
+    '!src/**/*.d.ts',
+    '!src/config/**',
+    '!src/database/**'
+  ],
+  coverageThreshold: {
+    global: {
+      branches: 40,
+      functions: 20,
+      lines: 40,
+      statements: 40
+    }
+  },
+  coverageDirectory: 'coverage',
+  verbose: true,
+  forceExit: true,
+  clearMocks: true,
+  resetMocks: true,
+  restoreMocks: true,
+  maxWorkers: 1  // Run tests serially to avoid database conflicts
 };

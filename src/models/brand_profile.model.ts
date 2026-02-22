@@ -15,8 +15,9 @@ export interface IBrandProfile extends Document {
     };
     socialLinks: {
         instagram?: string;
-        tiktok?: string;
         facebook?: string;
+        twitter?: string;
+        linkedin?: string;
     };
     isVerified: boolean;
     subscriptionTier: 'free' | 'basic' | 'premium' | 'enterprise';
@@ -37,8 +38,9 @@ const BrandProfileSchema: Schema = new Schema({
     },
     socialLinks: {
         instagram: { type: String },
-        tiktok: { type: String },
-        facebook: { type: String }
+        facebook: { type: String },
+        twitter: { type: String },
+        linkedin: { type: String }
     },
     isVerified: { type: Boolean, default: false },
     subscriptionTier: { type: String, enum: ['free', 'basic', 'premium', 'enterprise'], default: 'free' }

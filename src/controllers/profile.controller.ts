@@ -10,12 +10,15 @@ export const ProfileController = {
             let profile;
             if (req.user.isInfluencer) {
                 // Atomic upsert to prevent race conditions (duplicate key errors)
+                // Generate a unique username by appending user ID
+                const defaultUsername = `${req.user.email.split('@')[0]}_${req.user._id.toString().slice(-6)}`;
+                
                 profile = await InfluencerProfileModel.findOneAndUpdate(
                     { userId: req.user._id },
                     {
                         $setOnInsert: {
                             userId: req.user._id,
-                            username: req.user.email.split('@')[0], // Default username
+                            username: defaultUsername,
                             isVerified: false
                         }
                     },
@@ -82,28 +85,9 @@ export const ProfileController = {
                     { new: true, runValidators: true }
                 );
             } else {
-                // If socialLinks are provided, we might want to merge them if they are nested
-                // However, Mongoose update with $set: req.body usually overwrites the whole object if it's nested
-                // To be safe and support partial updates of socialLinks, we can flatten it or handle it specifically
-
-                const finalUpdate: any = { $set: {} };
-                for (const key in updateData) {
-                    if (key === 'socialLinks' && typeof updateData[key] === 'object') {
-                        for (const socialKey in updateData[key]) {
-                            finalUpdate.$set[`socialLinks.${socialKey}`] = updateData[key][socialKey];
-                        }
-                    } else if (key === 'headquarters' && typeof updateData[key] === 'object') {
-                        for (const hqKey in updateData[key]) {
-                            finalUpdate.$set[`headquarters.${hqKey}`] = updateData[key][hqKey];
-                        }
-                    } else {
-                        finalUpdate.$set[key] = updateData[key];
-                    }
-                }
-
                 profile = await BrandProfileModel.findOneAndUpdate(
                     { userId: req.user._id },
-                    finalUpdate,
+                    { $set: updateData },
                     { new: true, runValidators: true }
                 );
             }

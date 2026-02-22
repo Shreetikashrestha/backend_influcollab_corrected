@@ -65,7 +65,12 @@ export const NotificationController = {
     deleteNotification: async (req: Request, res: Response) => {
         try {
             const { notificationId } = req.params;
-            await NotificationModel.findByIdAndDelete(notificationId);
+            const notification = await NotificationModel.findByIdAndDelete(notificationId);
+            
+            if (!notification) {
+                return res.status(404).json({ success: false, message: "Notification not found" });
+            }
+            
             res.status(200).json({ success: true, message: "Notification deleted" });
         } catch (error: any) {
             res.status(500).json({ success: false, message: error.message });
