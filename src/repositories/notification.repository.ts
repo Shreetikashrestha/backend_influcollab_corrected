@@ -1,28 +1,28 @@
-import Notification from '../models/notification.model';
+import { NotificationModel } from '../models/notification.model';
 import { INotification } from '../types/notification.type';
 
 export class NotificationRepository {
     async create(notificationData: Partial<INotification>): Promise<INotification> {
-        const notification = new Notification(notificationData);
+        const notification = new NotificationModel(notificationData);
         return await notification.save();
     }
 
     async findById(id: string): Promise<INotification | null> {
-        return await Notification.findById(id).populate('userId');
+        return await NotificationModel.findById(id).populate('userId');
     }
 
     async findByUserId(userId: string): Promise<INotification[]> {
-        return await Notification.find({ userId })
+        return await NotificationModel.find({ userId })
             .sort({ createdAt: -1 });
     }
 
     async findUnreadByUserId(userId: string): Promise<INotification[]> {
-        return await Notification.find({ userId, isRead: false })
+        return await NotificationModel.find({ userId, isRead: false })
             .sort({ createdAt: -1 });
     }
 
     async markAsRead(id: string): Promise<INotification | null> {
-        return await Notification.findByIdAndUpdate(
+        return await NotificationModel.findByIdAndUpdate(
             id,
             { isRead: true },
             { new: true }
@@ -30,18 +30,18 @@ export class NotificationRepository {
     }
 
     async markAllAsRead(userId: string): Promise<void> {
-        await Notification.updateMany(
+        await NotificationModel.updateMany(
             { userId, isRead: false },
             { isRead: true }
         );
     }
 
     async delete(id: string): Promise<INotification | null> {
-        return await Notification.findByIdAndDelete(id);
+        return await NotificationModel.findByIdAndDelete(id);
     }
 
     async deleteAllByUserId(userId: string): Promise<void> {
-        await Notification.deleteMany({ userId });
+        await NotificationModel.deleteMany({ userId });
     }
 }
 
