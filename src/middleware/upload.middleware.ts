@@ -28,8 +28,33 @@ const fileFilter = (req: Request, file: Express.Multer.File, cb: multer.FileFilt
     cb(null, true);
 };
 
+// File filter for messages - accepts images, documents, and videos
+const messageFileFilter = (req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+    const allowedMimeTypes = [
+        'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'text/plain',
+        'video/mp4', 'video/mpeg', 'video/quicktime'
+    ];
+    
+    if (allowedMimeTypes.includes(file.mimetype)) {
+        cb(null, true);
+    } else {
+        cb(new Error('File type not allowed. Allowed types: images, PDF, DOC, DOCX, TXT, MP4, MPEG, MOV'));
+    }
+};
+
 export const upload = multer({
     storage: storage,
     fileFilter: fileFilter,
     limits: { fileSize: 5 * 1024 * 1024 } // 5 MB file size limit
 });
+
+export const messageUpload = multer({
+    storage: storage,
+    fileFilter: messageFileFilter,
+    limits: { fileSize: 10 * 1024 * 1024 } // 10 MB file size limit for messages
+});
+
