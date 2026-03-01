@@ -25,7 +25,7 @@ const MessageSchema: Schema = new Schema({
     conversationId: { type: Schema.Types.ObjectId, ref: 'Conversation', required: true },
     sender: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     senderRole: { type: String, enum: ['brand', 'influencer', 'admin'], required: true },
-    content: { type: String, required: true },
+    content: { type: String, default: '' },
     attachments: [{
         type: { type: String, enum: ['image', 'document', 'video'], required: true },
         url: { type: String, required: true },

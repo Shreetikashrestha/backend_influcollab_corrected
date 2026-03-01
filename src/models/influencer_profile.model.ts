@@ -19,6 +19,10 @@ export interface IInfluencerProfile extends Document {
         engagementRate: number;
         isPrimary: boolean;
     }>;
+    audienceDemographics: Array<{
+        label: string;
+        percentage: number;
+    }>;
     portfolio: Array<{
         title: string;
         description: string;
@@ -49,6 +53,10 @@ const InfluencerProfileSchema: Schema = new Schema({
         followers: { type: Number, default: 0 },
         engagementRate: { type: Number, default: 0 },
         isPrimary: { type: Boolean, default: false }
+    }],
+    audienceDemographics: [{
+        label: { type: String },
+        percentage: { type: Number, default: 0 }
     }],
     portfolio: [{
         title: { type: String },

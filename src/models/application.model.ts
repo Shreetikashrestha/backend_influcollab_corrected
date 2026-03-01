@@ -7,7 +7,7 @@ export interface IApplication extends Document {
     brandId: mongoose.Types.ObjectId;
     proposalMessage?: string;
     status: 'pending' | 'accepted' | 'rejected';
-    appliedAt: Date;
+    createdAt: Date;
     updatedAt: Date;
 }
 
