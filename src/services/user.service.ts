@@ -138,4 +138,23 @@ export class UserService {
 
         return { message: "Password reset successful" };
     }
+
+    async changePassword(userId: string, currentPassword: string, newPassword: string) {
+        const user = await this.userRepository.getUserById(userId);
+        if (!user) {
+            throw new HttpError(404, "User not found");
+        }
+
+        // Verify current password
+        const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
+        if (!isPasswordValid) {
+            throw new HttpError(401, "Current password is incorrect");
+        }
+
+        // Hash new password
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        await this.userRepository.updateOneUser(userId, { password: hashedPassword } as any);
+
+        return { message: "Password changed successfully" };
+    }
 }
