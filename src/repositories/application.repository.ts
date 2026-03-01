@@ -1,48 +1,48 @@
-import Application from '../models/application.model';
+import { ApplicationModel } from '../models/application.model';
 import { IApplication } from '../types/application.type';
 
 export class ApplicationRepository {
     async create(applicationData: Partial<IApplication>): Promise<IApplication> {
-        const application = new Application(applicationData);
+        const application = new ApplicationModel(applicationData);
         return await application.save();
     }
 
     async findById(id: string): Promise<IApplication | null> {
-        return await Application.findById(id)
+        return await ApplicationModel.findById(id)
             .populate('campaignId')
             .populate('influencerId');
     }
 
     async findAll(filter: any = {}): Promise<IApplication[]> {
-        return await Application.find(filter)
+        return await ApplicationModel.find(filter)
             .populate('campaignId')
             .populate('influencerId');
     }
 
     async findByCampaignId(campaignId: string): Promise<IApplication[]> {
-        return await Application.find({ campaignId })
+        return await ApplicationModel.find({ campaignId })
             .populate('influencerId');
     }
 
     async findByInfluencerId(influencerId: string): Promise<IApplication[]> {
-        return await Application.find({ influencerId })
+        return await ApplicationModel.find({ influencerId })
             .populate('campaignId');
     }
 
     async findOne(filter: any): Promise<IApplication | null> {
-        return await Application.findOne(filter);
+        return await ApplicationModel.findOne(filter);
     }
 
     async update(id: string, updateData: Partial<IApplication>): Promise<IApplication | null> {
-        return await Application.findByIdAndUpdate(id, updateData, { new: true });
+        return await ApplicationModel.findByIdAndUpdate(id, updateData, { new: true });
     }
 
     async updateStatus(id: string, status: string): Promise<IApplication | null> {
-        return await Application.findByIdAndUpdate(id, { status }, { new: true });
+        return await ApplicationModel.findByIdAndUpdate(id, { status }, { new: true });
     }
 
     async delete(id: string): Promise<IApplication | null> {
-        return await Application.findByIdAndDelete(id);
+        return await ApplicationModel.findByIdAndDelete(id);
     }
 }
 

@@ -1,29 +1,29 @@
-import Message from '../models/message.model';
-import Conversation from '../models/conversation.model';
+import { MessageModel } from '../models/message.model';
+import { ConversationModel } from '../models/conversation.model';
 import { IMessage } from '../types/message.type';
 import { IConversation } from '../types/conversation.type';
 
 export class MessageRepository {
     async createMessage(messageData: Partial<IMessage>): Promise<IMessage> {
-        const message = new Message(messageData);
+        const message = new MessageModel(messageData);
         return await message.save();
     }
 
     async findMessageById(id: string): Promise<IMessage | null> {
-        return await Message.findById(id)
+        return await MessageModel.findById(id)
             .populate('senderId')
             .populate('receiverId');
     }
 
     async findMessagesByConversation(conversationId: string): Promise<IMessage[]> {
-        return await Message.find({ conversationId })
+        return await MessageModel.find({ conversationId })
             .populate('senderId')
             .populate('receiverId')
             .sort({ createdAt: 1 });
     }
 
     async markAsRead(messageId: string): Promise<IMessage | null> {
-        return await Message.findByIdAndUpdate(
+        return await MessageModel.findByIdAndUpdate(
             messageId,
             { isRead: true },
             { new: true }
@@ -31,31 +31,31 @@ export class MessageRepository {
     }
 
     async createConversation(conversationData: Partial<IConversation>): Promise<IConversation> {
-        const conversation = new Conversation(conversationData);
+        const conversation = new ConversationModel(conversationData);
         return await conversation.save();
     }
 
     async findConversationById(id: string): Promise<IConversation | null> {
-        return await Conversation.findById(id)
+        return await ConversationModel.findById(id)
             .populate('participants')
             .populate('lastMessage');
     }
 
     async findConversationByParticipants(participant1: string, participant2: string): Promise<IConversation | null> {
-        return await Conversation.findOne({
+        return await ConversationModel.findOne({
             participants: { $all: [participant1, participant2] }
         }).populate('participants').populate('lastMessage');
     }
 
     async findUserConversations(userId: string): Promise<IConversation[]> {
-        return await Conversation.find({ participants: userId })
+        return await ConversationModel.find({ participants: userId })
             .populate('participants')
             .populate('lastMessage')
             .sort({ updatedAt: -1 });
     }
 
     async updateConversation(id: string, updateData: Partial<IConversation>): Promise<IConversation | null> {
-        return await Conversation.findByIdAndUpdate(id, updateData, { new: true });
+        return await ConversationModel.findByIdAndUpdate(id, updateData, { new: true });
     }
 }
 
