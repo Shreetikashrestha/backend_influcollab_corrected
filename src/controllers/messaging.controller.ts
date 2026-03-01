@@ -10,7 +10,7 @@ export const MessageController = {
             const conversations = await ConversationModel.find({
                 'participants.user': req.user._id
             })
-                .populate('participants.user', 'fullName email isInfluencer role')
+                .populate('participants.user', 'fullName email isInfluencer role profilePicture')
                 .populate('lastMessage')
                 .sort({ updatedAt: -1 });
 
@@ -25,7 +25,7 @@ export const MessageController = {
         try {
             const { conversationId } = req.params;
             const messages = await MessageModel.find({ conversationId })
-                .populate('sender', 'fullName email')
+                .populate('sender', 'fullName email profilePicture')
                 .sort({ createdAt: 1 });
 
             res.status(200).json({ success: true, messages });
@@ -37,8 +37,26 @@ export const MessageController = {
     // Send a new message
     sendMessage: async (req: any, res: Response) => {
         try {
-            const { conversationId, content, receiverId, campaignId, attachments } = req.body;
+            const { conversationId, content, receiverId, campaignId } = req.body;
             let existingConversationId = conversationId;
+
+            // Process uploaded files
+            const attachments = req.files ? (req.files as Express.Multer.File[]).map((file: Express.Multer.File) => {
+                const fileType = file.mimetype.startsWith('image/') ? 'image' : 
+                               file.mimetype.startsWith('video/') ? 'video' : 'document';
+                
+                return {
+                    type: fileType,
+                    url: `/uploads/${file.filename}`,
+                    name: file.originalname,
+                    size: file.size
+                };
+            }) : [];
+
+            // Validate that at least content or attachments are provided
+            if (!content?.trim() && attachments.length === 0) {
+                return res.status(400).json({ success: false, message: "Message must have content or attachments" });
+            }
 
             // If no conversationId, check if one exists between these users or create a new one
             if (!existingConversationId && receiverId) {
@@ -70,24 +88,44 @@ export const MessageController = {
                 existingConversationId = conversation._id;
             }
 
+            if (!existingConversationId) {
+                return res.status(400).json({ success: false, message: "Either conversationId or receiverId is required" });
+            }
+
             const message = await MessageModel.create({
                 conversationId: existingConversationId,
                 sender: req.user._id,
                 senderRole: req.user.isInfluencer ? 'influencer' : (req.user.role === 'admin' ? 'admin' : 'brand'),
-                content,
-                attachments: attachments || []
+                content: content || '',
+                attachments
             });
+
+            // Populate sender details before sending response
+            const populatedMessage = await MessageModel.findById(message._id)
+                .populate('sender', 'fullName email profilePicture');
+
+            // Get the other participant's ID for unread count
+            const conversation = await ConversationModel.findById(existingConversationId);
+            const otherParticipant = conversation?.participants.find(
+                (p: any) => p.user.toString() !== req.user._id.toString()
+            );
 
             // Update conversation with last message and increment unread count
-            await ConversationModel.findByIdAndUpdate(existingConversationId, {
-                lastMessage: message._id,
-                $inc: { [`unreadCount.${receiverId}`]: 1 }
-            });
+            if (otherParticipant) {
+                await ConversationModel.findByIdAndUpdate(existingConversationId, {
+                    lastMessage: message._id,
+                    $inc: { [`unreadCount.${otherParticipant.user}`]: 1 }
+                });
+            } else {
+                await ConversationModel.findByIdAndUpdate(existingConversationId, {
+                    lastMessage: message._id
+                });
+            }
 
-            // Emit real-time event
-            req.io.to(existingConversationId.toString()).emit('new_message', message);
+            // Emit real-time event with populated message
+            req.io.to(existingConversationId.toString()).emit('new_message', populatedMessage);
 
-            res.status(201).json({ success: true, message });
+            res.status(201).json({ success: true, message: populatedMessage });
         } catch (error: any) {
             res.status(500).json({ success: false, message: error.message });
         }
