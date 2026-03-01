@@ -9,7 +9,8 @@ router.get('/me', authorizedMiddleware, ProfileController.getMyProfile);
 router.get('/influencers', authorizedMiddleware, ProfileController.getAllInfluencers);
 router.get('/:userId', authorizedMiddleware, ProfileController.getProfileByUserId);
 
-// Support optional logo/profilePicture upload on profile update
+// Extended profile update (brand/influencer specific fields)
+// Note: For basic user info updates, use /api/users/update
 router.patch('/update', authorizedMiddleware, upload.single('logo'), ProfileController.updateProfile);
 
 export default router;

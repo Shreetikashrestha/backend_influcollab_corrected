@@ -15,7 +15,8 @@ const authController = new AuthController();
 // Get all influencers (public or protected as needed)
 router.get('/influencers', userController.getInfluencers);
 
-// Update user profile (Self)
+// Update user profile (Self) - Basic user info update
+// Note: For extended profile updates (brand/influencer specific), use /api/profiles/update
 router.put('/update', authorizedMiddleware, upload.single('profilePicture'), userController.updateProfile);
 
 // Search users for messaging
@@ -23,6 +24,9 @@ router.get('/search-messaging', authorizedMiddleware, userController.searchUsers
 
 // Admin routes
 router.get('/admin/all', userController.getAllUsers);
+router.post('/admin', authorizedMiddleware, upload.single('profilePicture'), userController.createUser);
+router.get('/admin/stats', authorizedMiddleware, userController.getAdminStats);
+router.post('/admin/invite', authorizedMiddleware, userController.sendInvitation);
 router.put('/admin/:id', userController.updateUser);
 router.delete('/admin/:id', userController.deleteUser);
 
