@@ -12,6 +12,8 @@ router.use(authorizedMiddleware);
 router.get('/stats/influencer', applicationController.getInfluencerStats);
 router.post('/', applicationController.createApplication);
 router.get('/my', applicationController.getInfluencerApplications);
+// Mobile app compatibility alias
+router.get('/my-applications', applicationController.getInfluencerApplications);
 
 // Brand routes
 router.get('/campaign/:campaignId', applicationController.getCampaignApplications);

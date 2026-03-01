@@ -8,6 +8,8 @@ const router = Router();
 // Public routes (accessible to authenticated users)
 router.get('/', authorizedMiddleware, campaignController.getCampaigns);
 router.get('/my', authorizedMiddleware, campaignController.getUserCampaigns);
+// Mobile app compatibility alias
+router.get('/my-campaigns', authorizedMiddleware, campaignController.getUserCampaigns);
 router.get('/brand-stats', authorizedMiddleware, campaignController.getBrandStats);
 router.get('/:id', authorizedMiddleware, campaignController.getCampaignById);
 
