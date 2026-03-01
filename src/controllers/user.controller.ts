@@ -95,6 +95,68 @@ export class UserController {
         }
     }
 
+    // Admin: Create new user
+    async createUser(req: Request, res: Response) {
+        try {
+            const { email, password, fullName, isInfluencer, role, bio, gender } = req.body;
+
+            // Validate required fields
+            if (!email || !password || !fullName) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Email, password, and full name are required"
+                });
+            }
+
+            // Check if user already exists
+            const existingUser = await UserModel.findOne({ email });
+            if (existingUser) {
+                return res.status(400).json({
+                    success: false,
+                    message: "User with this email already exists"
+                });
+            }
+
+            // Hash password
+            const bcrypt = require('bcryptjs');
+            const hashedPassword = await bcrypt.hash(password, 10);
+
+            // Create user data
+            const userData: any = {
+                email,
+                password: hashedPassword,
+                fullName,
+                isInfluencer: isInfluencer === 'true' || isInfluencer === true,
+                role: role || 'user',
+            };
+
+            if (bio) userData.bio = bio;
+            if (gender) userData.gender = gender;
+            if (req.file) {
+                userData.profilePicture = `/uploads/${req.file.filename}`;
+            }
+
+            // Create user
+            const newUser = await UserModel.create(userData);
+
+            // Remove password from response
+            const { password: _, ...userResponse } = newUser.toObject();
+
+            return res.status(201).json({
+                success: true,
+                data: userResponse,
+                message: "User created successfully"
+            });
+        } catch (error: any) {
+            console.error('Error creating user:', error);
+            return res.status(500).json({
+                success: false,
+                message: error.message || "Failed to create user"
+            });
+        }
+    }
+
+
     // Admin: Update user
     async updateUser(req: Request, res: Response) {
         try {
@@ -186,4 +248,142 @@ export class UserController {
             });
         }
     }
+
+
+    // Admin: Get platform statistics
+    async getAdminStats(req: Request, res: Response) {
+        try {
+            const [
+                totalUsers,
+                influencers,
+                brands,
+                admins,
+                usersThisMonth,
+                usersLastMonth
+            ] = await Promise.all([
+                UserModel.countDocuments(),
+                UserModel.countDocuments({ isInfluencer: true }),
+                UserModel.countDocuments({ isInfluencer: false, role: { $ne: 'admin' } }),
+                UserModel.countDocuments({ role: 'admin' }),
+                UserModel.countDocuments({
+                    createdAt: {
+                        $gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+                    }
+                }),
+                UserModel.countDocuments({
+                    createdAt: {
+                        $gte: new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1),
+                        $lt: new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+                    }
+                })
+            ]);
+
+            // Calculate growth percentage
+            const userGrowth = usersLastMonth > 0
+                ? ((usersThisMonth - usersLastMonth) / usersLastMonth * 100).toFixed(1)
+                : '0';
+
+            // Get monthly user registration data for the current year
+            const currentYear = new Date().getFullYear();
+            const monthlyData = await UserModel.aggregate([
+                {
+                    $match: {
+                        createdAt: {
+                            $gte: new Date(currentYear, 0, 1),
+                            $lt: new Date(currentYear + 1, 0, 1)
+                        }
+                    }
+                },
+                {
+                    $group: {
+                        _id: { $month: '$createdAt' },
+                        count: { $sum: 1 },
+                        influencers: {
+                            $sum: { $cond: ['$isInfluencer', 1, 0] }
+                        },
+                        brands: {
+                            $sum: { $cond: [{ $and: [{ $eq: ['$isInfluencer', false] }, { $ne: ['$role', 'admin'] }] }, 1, 0] }
+                        }
+                    }
+                },
+                {
+                    $sort: { _id: 1 }
+                }
+            ]);
+
+            // Format monthly data
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const formattedMonthlyData = months.map((month, index) => {
+                const data = monthlyData.find(d => d._id === index + 1);
+                return {
+                    name: month,
+                    influencers: data?.influencers || 0,
+                    brands: data?.brands || 0,
+                    total: data?.count || 0
+                };
+            });
+
+            return res.status(200).json({
+                success: true,
+                data: {
+                    totalUsers,
+                    influencers,
+                    brands,
+                    admins,
+                    userGrowth: `+${userGrowth}%`,
+                    monthlyData: formattedMonthlyData
+                }
+            });
+        } catch (error: any) {
+            console.error('Error fetching admin stats:', error);
+            return res.status(500).json({
+                success: false,
+                message: error.message || "Failed to fetch admin statistics"
+            });
+        }
+    }
+
+    // Send invitation email
+    async sendInvitation(req: Request, res: Response) {
+        try {
+            const { email, inviterName } = req.body;
+
+            if (!email) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Email is required"
+                });
+            }
+
+            // Check if user already exists
+            const existingUser = await UserModel.findOne({ email });
+            if (existingUser) {
+                return res.status(400).json({
+                    success: false,
+                    message: "User with this email already exists"
+                });
+            }
+
+            const { EmailService } = await import('../services/email.service');
+            const emailService = new EmailService();
+            
+            const registerUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/register`;
+            const senderName = inviterName || 'Admin';
+            
+            const result = await emailService.sendInvitationEmail(email, senderName, registerUrl);
+
+            return res.status(200).json({
+                success: true,
+                message: "Invitation email sent successfully",
+                previewUrl: result.previewUrl
+            });
+        } catch (error: any) {
+            console.error('Error sending invitation:', error);
+            return res.status(500).json({
+                success: false,
+                message: error.message || "Failed to send invitation email"
+            });
+        }
+    }
+
 }
