@@ -2,10 +2,19 @@ import { Server } from 'socket.io';
 import { Server as HttpServer } from 'http';
 
 export function initializeSocket(httpServer: HttpServer): Server {
+    // Dynamic CORS for Socket.IO to support web and mobile clients
+    const allowedOrigins = [
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://localhost:3003",
+        process.env.FRONTEND_URL || "",
+    ].filter((origin): origin is string => Boolean(origin));
+
     const io = new Server(httpServer, {
         cors: {
-            origin: ["http://localhost:3000", "http://localhost:3003"],
-            methods: ["GET", "POST"]
+            origin: allowedOrigins,
+            methods: ["GET", "POST"],
+            credentials: true
         }
     });
 
