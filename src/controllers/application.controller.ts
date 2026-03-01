@@ -101,9 +101,9 @@ export class ApplicationController {
 
             // Get applications with influencer details
             const applications = await ApplicationModel.find(filter)
-                .populate('influencerId', 'fullName email isInfluencer')
+                .populate('influencerId', 'fullName email isInfluencer profilePicture')
                 .populate('campaignId', 'title brandName category budgetMin budgetMax')
-                .sort({ appliedAt: -1 });
+                .sort({ createdAt: -1 });
 
             return res.status(200).json({
                 success: true,
@@ -132,7 +132,7 @@ export class ApplicationController {
             const applications = await ApplicationModel.find(filter)
                 .populate('campaignId', 'title brandName category budgetMin budgetMax deadline status')
                 .populate('brandId', 'fullName email')
-                .sort({ appliedAt: -1 });
+                .sort({ createdAt: -1 });
 
             return res.status(200).json({
                 success: true,
