@@ -146,4 +146,30 @@ export class AuthController {
             });
         }
     }
+
+    async changePassword(req: any, res: Response) {
+        try {
+            const { currentPassword, newPassword } = req.body;
+            const userId = req.user._id;
+
+            if (!currentPassword || !newPassword) {
+                throw new HttpError(400, "Current password and new password are required");
+            }
+
+            if (newPassword.length < 6) {
+                throw new HttpError(400, "New password must be at least 6 characters long");
+            }
+
+            const result = await userService.changePassword(userId, currentPassword, newPassword);
+            return res.status(200).json({
+                success: true,
+                message: result.message
+            });
+        } catch (error: any) {
+            return res.status(error.statusCode || 500).json({
+                success: false,
+                message: error.message || "Failed to change password"
+            });
+        }
+    }
 }
