@@ -10,15 +10,12 @@ export const ProfileController = {
             let profile;
             if (req.user.isInfluencer) {
                 // Atomic upsert to prevent race conditions (duplicate key errors)
-                // Generate a unique username by appending user ID
-                const defaultUsername = `${req.user.email.split('@')[0]}_${req.user._id.toString().slice(-6)}`;
-                
                 profile = await InfluencerProfileModel.findOneAndUpdate(
                     { userId: req.user._id },
                     {
                         $setOnInsert: {
                             userId: req.user._id,
-                            username: defaultUsername,
+                            username: req.user.email.split('@')[0], // Default username
                             isVerified: false
                         }
                     },
