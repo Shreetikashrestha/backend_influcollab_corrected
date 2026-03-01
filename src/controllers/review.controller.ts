@@ -3,10 +3,9 @@ import { ReviewModel } from "../models/review.model";
 import { InfluencerProfileModel } from "../models/influencer_profile.model";
 
 export class ReviewController {
-    // Create a new review
     async createReview(req: Request, res: Response) {
         try {
-            const reviewerId = (req as any).userId;
+            const reviewerId = (req as any).user._id;
             const { revieweeId, campaignId, rating, comment } = req.body;
 
             if (!revieweeId || !campaignId || !rating) {
