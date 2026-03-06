@@ -2,7 +2,6 @@ import { Server } from 'socket.io';
 import { Server as HttpServer } from 'http';
 
 export function initializeSocket(httpServer: HttpServer): Server {
-    // Dynamic CORS for Socket.IO to support web and mobile clients
     const allowedOrigins = [
         "http://localhost:3000",
         "http://localhost:3001",
