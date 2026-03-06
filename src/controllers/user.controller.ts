@@ -5,7 +5,6 @@ import { UserService } from "../services/user.service";
 let userService = new UserService();
 
 export class UserController {
-    // Get all influencers
     async getInfluencers(req: Request, res: Response) {
         try {
             const { search, page, limit } = req.query;
@@ -47,7 +46,6 @@ export class UserController {
         }
     }
 
-    // Get user by ID (Public profile view)
     async getUserById(req: Request, res: Response) {
         try {
             const { id } = req.params;
@@ -74,7 +72,6 @@ export class UserController {
         }
     }
 
-    // Admin: Get all users with pagination
     async getAllUsers(req: Request, res: Response) {
         try {
             const { page, limit, search } = req.query;
@@ -95,12 +92,10 @@ export class UserController {
         }
     }
 
-    // Admin: Create new user
     async createUser(req: Request, res: Response) {
         try {
             const { email, password, fullName, isInfluencer, role, bio, gender } = req.body;
 
-            // Validate required fields
             if (!email || !password || !fullName) {
                 return res.status(400).json({
                     success: false,
@@ -108,7 +103,6 @@ export class UserController {
                 });
             }
 
-            // Check if user already exists
             const existingUser = await UserModel.findOne({ email });
             if (existingUser) {
                 return res.status(400).json({
@@ -117,11 +111,9 @@ export class UserController {
                 });
             }
 
-            // Hash password
             const bcrypt = require('bcryptjs');
             const hashedPassword = await bcrypt.hash(password, 10);
 
-            // Create user data
             const userData: any = {
                 email,
                 password: hashedPassword,
@@ -136,10 +128,8 @@ export class UserController {
                 userData.profilePicture = `/uploads/${req.file.filename}`;
             }
 
-            // Create user
             const newUser = await UserModel.create(userData);
 
-            // Remove password from response
             const { password: _, ...userResponse } = newUser.toObject();
 
             return res.status(201).json({
@@ -157,7 +147,6 @@ export class UserController {
     }
 
 
-    // Admin: Update user
     async updateUser(req: Request, res: Response) {
         try {
             const { id } = req.params;
@@ -175,7 +164,6 @@ export class UserController {
         }
     }
 
-    // Admin: Delete user
     async deleteUser(req: Request, res: Response) {
         try {
             const { id } = req.params;
@@ -192,7 +180,6 @@ export class UserController {
         }
     }
 
-    // Update Profile (Self)
     async updateProfile(req: any, res: Response) {
         try {
             const userId = req.user._id;
@@ -217,7 +204,6 @@ export class UserController {
         }
     }
 
-    // Search users for messaging
     async searchUsersForMessaging(req: any, res: Response) {
         try {
             const { q } = req.query;
@@ -250,7 +236,6 @@ export class UserController {
     }
 
 
-    // Admin: Get platform statistics
     async getAdminStats(req: Request, res: Response) {
         try {
             const [
@@ -278,12 +263,10 @@ export class UserController {
                 })
             ]);
 
-            // Calculate growth percentage
             const userGrowth = usersLastMonth > 0
                 ? ((usersThisMonth - usersLastMonth) / usersLastMonth * 100).toFixed(1)
                 : '0';
 
-            // Get monthly user registration data for the current year
             const currentYear = new Date().getFullYear();
             const monthlyData = await UserModel.aggregate([
                 {
@@ -311,7 +294,6 @@ export class UserController {
                 }
             ]);
 
-            // Format monthly data
             const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
             const formattedMonthlyData = months.map((month, index) => {
                 const data = monthlyData.find(d => d._id === index + 1);
@@ -343,7 +325,6 @@ export class UserController {
         }
     }
 
-    // Send invitation email
     async sendInvitation(req: Request, res: Response) {
         try {
             const { email, inviterName } = req.body;
@@ -355,7 +336,6 @@ export class UserController {
                 });
             }
 
-            // Check if user already exists
             const existingUser = await UserModel.findOne({ email });
             if (existingUser) {
                 return res.status(400).json({

@@ -1,10 +1,8 @@
 import request from 'supertest';
-import app from '../src/app';
+import app from '../src/test-app';
 import { ApplicationModel } from '../src/models/application.model';
 import { CampaignModel } from '../src/models/campaign.model';
 import { UserModel } from '../src/models/user.model';
-import { connectDatabase } from '../src/database/mongodb';
-import mongoose from 'mongoose';
 
 describe('Application API', () => {
     let brandToken: string;
@@ -13,8 +11,6 @@ describe('Application API', () => {
     let applicationId: string;
 
     beforeAll(async () => {
-        await connectDatabase();
-
         // Clean up test users if they exist
         await UserModel.deleteOne({ email: 'testbrand6@test.com' });
         await UserModel.deleteOne({ email: 'testinfluencer5@test.com' });
@@ -84,7 +80,6 @@ describe('Application API', () => {
         }
         await UserModel.deleteOne({ email: 'testbrand6@test.com' });
         await UserModel.deleteOne({ email: 'testinfluencer5@test.com' });
-        await mongoose.connection.close();
     });
 
     describe('POST /api/applications', () => {

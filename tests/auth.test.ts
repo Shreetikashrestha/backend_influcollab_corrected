@@ -1,21 +1,7 @@
 import request from 'supertest';
-import app from '../src/app';
-import { UserModel } from '../src/models/user.model';
-import { connectDatabase } from '../src/database/mongodb';
-import mongoose from 'mongoose';
+import app from '../src/test-app';
 
 describe('Authentication API', () => {
-    beforeAll(async () => {
-        // Setup test database connection
-        await connectDatabase();
-    });
-
-    afterAll(async () => {
-        // Cleanup
-        await UserModel.deleteMany({ email: /test.*@test.com/ });
-        await mongoose.connection.close();
-    });
-
     describe('POST /api/auth/register', () => {
         it('should register a new user successfully', async () => {
             const response = await request(app)
@@ -34,10 +20,21 @@ describe('Authentication API', () => {
         });
 
         it('should reject duplicate email registration', async () => {
+            // First register
+            await request(app)
+                .post('/api/auth/register')
+                .send({
+                    email: 'duplicate@test.com',
+                    password: 'Test123!',
+                    fullName: 'Test User',
+                    isInfluencer: false
+                });
+
+            // Try to register again
             const response = await request(app)
                 .post('/api/auth/register')
                 .send({
-                    email: 'test@test.com',
+                    email: 'duplicate@test.com',
                     password: 'Test123!',
                     fullName: 'Test User',
                     isInfluencer: false
@@ -59,11 +56,23 @@ describe('Authentication API', () => {
     });
 
     describe('POST /api/auth/login', () => {
+        beforeEach(async () => {
+            // Register a user for login tests
+            await request(app)
+                .post('/api/auth/register')
+                .send({
+                    email: 'login@test.com',
+                    password: 'Test123!',
+                    fullName: 'Login Test User',
+                    isInfluencer: false
+                });
+        });
+
         it('should login with valid credentials', async () => {
             const response = await request(app)
                 .post('/api/auth/login')
                 .send({
-                    email: 'test@test.com',
+                    email: 'login@test.com',
                     password: 'Test123!'
                 });
 
@@ -76,7 +85,7 @@ describe('Authentication API', () => {
             const response = await request(app)
                 .post('/api/auth/login')
                 .send({
-                    email: 'test@test.com',
+                    email: 'login@test.com',
                     password: 'WrongPassword'
                 });
 
@@ -88,14 +97,24 @@ describe('Authentication API', () => {
     describe('GET /api/auth/whoami', () => {
         let token: string;
 
-        beforeAll(async () => {
-            const response = await request(app)
+        beforeEach(async () => {
+            // Register and login to get token
+            await request(app)
+                .post('/api/auth/register')
+                .send({
+                    email: 'whoami@test.com',
+                    password: 'Test123!',
+                    fullName: 'Whoami Test User',
+                    isInfluencer: false
+                });
+
+            const loginResponse = await request(app)
                 .post('/api/auth/login')
                 .send({
-                    email: 'test@test.com',
+                    email: 'whoami@test.com',
                     password: 'Test123!'
                 });
-            token = response.body.data.token;
+            token = loginResponse.body.data.token;
         });
 
         it('should return user data with valid token', async () => {
@@ -105,7 +124,7 @@ describe('Authentication API', () => {
 
             expect(response.status).toBe(200);
             expect(response.body.success).toBe(true);
-            expect(response.body.data).toHaveProperty('email', 'test@test.com');
+            expect(response.body.data).toHaveProperty('email', 'whoami@test.com');
         });
 
         it('should reject request without token', async () => {

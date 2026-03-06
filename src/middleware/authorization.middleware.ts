@@ -5,7 +5,6 @@ import { HttpError } from '../errors/http-error';
 import { UserRepository } from '../repositories/user.repository';
 import { IUser } from '../models/user.model';
 
-// Global augmentation for Express Request to include user property
 declare global {
     namespace Express {
         interface Request {
@@ -42,7 +41,6 @@ export const authorizedMiddleware = async (req: Request, res: Response, next: Ne
                 console.log('Authorization failure: User not found for ID:', decodedToken.id);
                 throw new HttpError(401, "Unauthorized, User not found");
             }
-            // Attach user to request object
             req.user = user;
             next();
         } catch (jwtError: any) {
@@ -54,6 +52,3 @@ export const authorizedMiddleware = async (req: Request, res: Response, next: Ne
         return res.status(401).json({ success: false, message: error.message || "Unauthorized" });
     }
 }
-// For brand and influencer role-based middleware, see:
-//   brand.middleware.ts
-//   influencer.middleware.ts

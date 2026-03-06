@@ -1,22 +1,12 @@
 import request from 'supertest';
-import app from '../src/app';
-import { CampaignModel } from '../src/models/campaign.model';
-import { connectDatabase } from '../src/database/mongodb';
-import mongoose from 'mongoose';
+import app from '../src/test-app';
 
 describe('Campaign API', () => {
     let brandToken: string;
     let influencerToken: string;
     let campaignId: string;
 
-    beforeAll(async () => {
-        // Connect to test database
-        await connectDatabase();
-        
-        // Clean up test users if they exist
-        await mongoose.connection.collection('users').deleteOne({ email: 'testbrand5@test.com' });
-        await mongoose.connection.collection('users').deleteOne({ email: 'testinfluencer4@test.com' });
-
+    beforeEach(async () => {
         // Register brand
         await request(app)
             .post('/api/auth/register')
@@ -56,16 +46,6 @@ describe('Campaign API', () => {
         influencerToken = influencerResponse.body.data.token;
     });
 
-    afterAll(async () => {
-        // Cleanup test data
-        if (campaignId) {
-            await CampaignModel.findByIdAndDelete(campaignId);
-        }
-        await mongoose.connection.collection('users').deleteOne({ email: 'testbrand5@test.com' });
-        await mongoose.connection.collection('users').deleteOne({ email: 'testinfluencer4@test.com' });
-        await mongoose.connection.close();
-    });
-
     describe('POST /api/campaigns', () => {
         it('should create a new campaign', async () => {
             const response = await request(app)
@@ -86,7 +66,6 @@ describe('Campaign API', () => {
             expect(response.status).toBe(201);
             expect(response.body.success).toBe(true);
             expect(response.body.data).toHaveProperty('_id');
-            campaignId = response.body.data._id;
         });
 
         it('should reject campaign creation without auth', async () => {
@@ -102,6 +81,22 @@ describe('Campaign API', () => {
 
     describe('GET /api/campaigns', () => {
         it('should fetch all campaigns', async () => {
+            // Create a campaign first
+            await request(app)
+                .post('/api/campaigns')
+                .set('Authorization', `Bearer ${brandToken}`)
+                .send({
+                    title: 'Test Campaign',
+                    brandName: 'Test Brand',
+                    category: 'Fashion',
+                    budgetMin: 5000,
+                    budgetMax: 15000,
+                    deadline: '2026-12-31',
+                    location: 'Kathmandu',
+                    description: 'Test campaign description',
+                    requirements: ['Requirement 1']
+                });
+
             const response = await request(app)
                 .get('/api/campaigns')
                 .set('Authorization', `Bearer ${influencerToken}`);
@@ -114,6 +109,23 @@ describe('Campaign API', () => {
 
     describe('GET /api/campaigns/:id', () => {
         it('should fetch campaign by ID', async () => {
+            // Create a campaign first
+            const createRes = await request(app)
+                .post('/api/campaigns')
+                .set('Authorization', `Bearer ${brandToken}`)
+                .send({
+                    title: 'Test Campaign',
+                    brandName: 'Test Brand',
+                    category: 'Fashion',
+                    budgetMin: 5000,
+                    budgetMax: 15000,
+                    deadline: '2026-12-31',
+                    location: 'Kathmandu',
+                    description: 'Test campaign description',
+                    requirements: ['Requirement 1']
+                });
+            const campaignId = createRes.body.data._id;
+
             const response = await request(app)
                 .get(`/api/campaigns/${campaignId}`)
                 .set('Authorization', `Bearer ${influencerToken}`);
@@ -126,6 +138,23 @@ describe('Campaign API', () => {
 
     describe('PATCH /api/campaigns/:id', () => {
         it('should update campaign', async () => {
+            // Create a campaign first
+            const createRes = await request(app)
+                .post('/api/campaigns')
+                .set('Authorization', `Bearer ${brandToken}`)
+                .send({
+                    title: 'Test Campaign',
+                    brandName: 'Test Brand',
+                    category: 'Fashion',
+                    budgetMin: 5000,
+                    budgetMax: 15000,
+                    deadline: '2026-12-31',
+                    location: 'Kathmandu',
+                    description: 'Test campaign description',
+                    requirements: ['Requirement 1']
+                });
+            const campaignId = createRes.body.data._id;
+
             const response = await request(app)
                 .patch(`/api/campaigns/${campaignId}`)
                 .set('Authorization', `Bearer ${brandToken}`)
@@ -139,6 +168,23 @@ describe('Campaign API', () => {
         });
 
         it('should reject update by non-owner', async () => {
+            // Create a campaign first
+            const createRes = await request(app)
+                .post('/api/campaigns')
+                .set('Authorization', `Bearer ${brandToken}`)
+                .send({
+                    title: 'Test Campaign',
+                    brandName: 'Test Brand',
+                    category: 'Fashion',
+                    budgetMin: 5000,
+                    budgetMax: 15000,
+                    deadline: '2026-12-31',
+                    location: 'Kathmandu',
+                    description: 'Test campaign description',
+                    requirements: ['Requirement 1']
+                });
+            const campaignId = createRes.body.data._id;
+
             const response = await request(app)
                 .patch(`/api/campaigns/${campaignId}`)
                 .set('Authorization', `Bearer ${influencerToken}`)
@@ -152,6 +198,23 @@ describe('Campaign API', () => {
 
     describe('POST /api/campaigns/:id/join', () => {
         it('should allow influencer to apply', async () => {
+            // Create a campaign first
+            const createRes = await request(app)
+                .post('/api/campaigns')
+                .set('Authorization', `Bearer ${brandToken}`)
+                .send({
+                    title: 'Test Campaign',
+                    brandName: 'Test Brand',
+                    category: 'Fashion',
+                    budgetMin: 5000,
+                    budgetMax: 15000,
+                    deadline: '2026-12-31',
+                    location: 'Kathmandu',
+                    description: 'Test campaign description',
+                    requirements: ['Requirement 1']
+                });
+            const campaignId = createRes.body.data._id;
+
             const response = await request(app)
                 .post(`/api/campaigns/${campaignId}/join`)
                 .set('Authorization', `Bearer ${influencerToken}`)
@@ -165,6 +228,24 @@ describe('Campaign API', () => {
     });
 
     describe('GET /api/campaigns - Filtering', () => {
+        beforeEach(async () => {
+            // Create a campaign for filtering tests
+            await request(app)
+                .post('/api/campaigns')
+                .set('Authorization', `Bearer ${brandToken}`)
+                .send({
+                    title: 'Test Campaign',
+                    brandName: 'Test Brand',
+                    category: 'Fashion',
+                    budgetMin: 5000,
+                    budgetMax: 15000,
+                    deadline: '2026-12-31',
+                    location: 'Kathmandu',
+                    description: 'Test campaign description',
+                    requirements: ['Requirement 1']
+                });
+        });
+
         it('should filter campaigns by category', async () => {
             const response = await request(app)
                 .get('/api/campaigns?category=Fashion')

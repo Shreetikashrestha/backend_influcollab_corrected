@@ -1,10 +1,7 @@
 import z from 'zod';
 
-// CreateUserDTO accepts either `fullName` or `name` (alias used by frontend)
-// `isInfluencer` is optional; defaults are applied in model/schema.
 export const CreateUserDTO = z
     .object({
-        // username: z.string().min(3),
         email: z.string().email(),
         password: z.string().min(6),
         confirmPassword: z.string().min(6).optional(),

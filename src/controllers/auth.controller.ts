@@ -20,10 +20,8 @@ export class AuthController {
             }
             const newUser = await userService.registerUser(parsedData.data);
 
-            // Remove password from response
             const userResponse = {
                 userId: newUser?._id ?? "",
-                // username: newUser?.username ?? "",
                 email: newUser?.email ?? "",
                 fullName: newUser?.fullName ?? "",
                 isInfluencer: newUser?.isInfluencer ?? false,
@@ -56,10 +54,8 @@ export class AuthController {
             }
             const { token, user } = await userService.loginUser(parsedData.data);
 
-            // Remove password from response
             const userResponse = {
                 userId: user?._id ?? "",
-                // username: user?.username ?? "",
                 email: user?.email ?? "",
                 fullName: user?.fullName ?? "",
                 isInfluencer: user?.isInfluencer ?? false,

@@ -4,7 +4,6 @@ import { MessageModel } from '../models/message.model';
 import { UserModel } from '../models/user.model';
 
 export const MessageController = {
-    // Get all conversations for the current user
     getConversations: async (req: any, res: Response) => {
         try {
             const conversations = await ConversationModel.find({
@@ -20,7 +19,6 @@ export const MessageController = {
         }
     },
 
-    // Get messages for a specific conversation
     getMessages: async (req: Request, res: Response) => {
         try {
             const { conversationId } = req.params;
@@ -34,13 +32,11 @@ export const MessageController = {
         }
     },
 
-    // Send a new message
     sendMessage: async (req: any, res: Response) => {
         try {
             const { conversationId, content, receiverId, campaignId } = req.body;
             let existingConversationId = conversationId;
 
-            // Process uploaded files
             const attachments = req.files ? (req.files as Express.Multer.File[]).map((file: Express.Multer.File) => {
                 const fileType = file.mimetype.startsWith('image/') ? 'image' : 
                                file.mimetype.startsWith('video/') ? 'video' : 'document';
@@ -53,12 +49,10 @@ export const MessageController = {
                 };
             }) : [];
 
-            // Validate that at least content or attachments are provided
             if (!content?.trim() && attachments.length === 0) {
                 return res.status(400).json({ success: false, message: "Message must have content or attachments" });
             }
 
-            // If no conversationId, check if one exists between these users or create a new one
             if (!existingConversationId && receiverId) {
                 let conversation = await ConversationModel.findOne({
                     'participants.user': { $all: [req.user._id, receiverId] },
@@ -100,17 +94,14 @@ export const MessageController = {
                 attachments
             });
 
-            // Populate sender details before sending response
             const populatedMessage = await MessageModel.findById(message._id)
                 .populate('sender', 'fullName email profilePicture');
 
-            // Get the other participant's ID for unread count
             const conversation = await ConversationModel.findById(existingConversationId);
             const otherParticipant = conversation?.participants.find(
                 (p: any) => p.user.toString() !== req.user._id.toString()
             );
 
-            // Update conversation with last message and increment unread count
             if (otherParticipant) {
                 await ConversationModel.findByIdAndUpdate(existingConversationId, {
                     lastMessage: message._id,
@@ -122,8 +113,9 @@ export const MessageController = {
                 });
             }
 
-            // Emit real-time event with populated message
-            req.io.to(existingConversationId.toString()).emit('new_message', populatedMessage);
+            if (req.io) {
+                req.io.to(existingConversationId.toString()).emit('new_message', populatedMessage);
+            }
 
             res.status(201).json({ success: true, message: populatedMessage });
         } catch (error: any) {
@@ -131,25 +123,23 @@ export const MessageController = {
         }
     },
 
-    // Mark all messages in a conversation as read
     markConversationAsRead: async (req: any, res: Response) => {
         try {
             const { conversationId } = req.params;
             const userId = req.user._id;
 
-            // Update all messages where I am NOT the sender
             await MessageModel.updateMany(
                 { conversationId, sender: { $ne: userId }, isRead: false },
                 { isRead: true, readAt: new Date() }
             );
 
-            // Reset unread count for this user in the conversation
             await ConversationModel.findByIdAndUpdate(conversationId, {
                 $set: { [`unreadCount.${userId}`]: 0 }
             });
 
-            // Emit event to inform other participants (optional, useful for read status in UI)
-            req.io.to(conversationId).emit('messages_read', { conversationId, userId });
+            if (req.io) {
+                req.io.to(conversationId).emit('messages_read', { conversationId, userId });
+            }
 
             res.status(200).json({ success: true, message: "Conversation marked as read" });
         } catch (error: any) {
@@ -157,7 +147,6 @@ export const MessageController = {
         }
     },
 
-    // Mark individual message as read
     markAsRead: async (req: any, res: Response) => {
         try {
             const { messageId } = req.params;
@@ -167,7 +156,6 @@ export const MessageController = {
             }, { new: true });
 
             if (message) {
-                // Decrement unread count for the user
                 await ConversationModel.findByIdAndUpdate(message.conversationId, {
                     $inc: { [`unreadCount.${req.user._id}`]: -1 }
                 });

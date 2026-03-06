@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
+import { Server } from 'socket.io';
 import authRoutes from './routes/auth.route';
 import userRoutes from './routes/user.route';
 import campaignRoutes from './routes/campaign.route';
@@ -11,13 +12,19 @@ import profileRoutes from './routes/profile.route';
 import paymentRoutes from './routes/payment.route';
 import reviewRoutes from './routes/review.route';
 import supportRoutes from './routes/support.route';
+import healthRoutes from './routes/health.route';
 import { authorizedMiddleware } from './middleware/authorization.middleware';
 import { brandMiddleware } from './middleware/brand.middleware';
 import { influencerMiddleware } from './middleware/influencer.middleware';
 
-const app = express();
+export function setupApp(io: Server) {
+    const app = express();
 
-// Dynamic CORS configuration for web and mobile clients
+    app.use((req: any, res, next) => {
+        req.io = io;
+        next();
+    });
+
 const allowedOrigins = [
     "http://localhost:3000",
     "http://localhost:3001",
@@ -42,7 +49,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
-// API Routes
+app.use('/api/health', healthRoutes);
+
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/campaigns', campaignRoutes);
@@ -54,12 +62,10 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/support', supportRoutes);
 
-// Mobile app admin route aliases
 app.use('/api/admin/users', userRoutes);
 app.use('/api/admin/campaigns', campaignRoutes);
 app.use('/api/admin/applications', applicationRoutes);
 
-// Role-based dashboard routes
 app.get(
     "/api/brand/dashboard",
     authorizedMiddleware,
@@ -78,9 +84,7 @@ app.get(
     },
 );
 
-// Health check route
-app.get('/api/health', (req, res) => {
-    res.status(200).json({ success: true, message: "Server is running" });
-});
+    return app;
+}
 
-export default app;
+export default setupApp;

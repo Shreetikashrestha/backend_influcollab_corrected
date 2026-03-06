@@ -5,7 +5,6 @@ import { ApplicationModel } from "../models/application.model";
 import { NotificationModel } from "../models/notification.model";
 
 export class CampaignController {
-    // Create a new campaign (Brand only)
     async createCampaign(req: Request, res: Response) {
         try {
             const userId = (req as any).user._id; // Set by auth middleware
@@ -23,7 +22,6 @@ export class CampaignController {
                 deliverables,
             } = req.body;
 
-            // Validate required fields
             if (!title || !description || !brandName || !category || !budgetMin || !budgetMax || !deadline || !location) {
                 return res.status(400).json({
                     success: false,
@@ -60,7 +58,6 @@ export class CampaignController {
         }
     }
 
-    // Get all campaigns (with optional status filter and pagination)
     async getCampaigns(req: Request, res: Response) {
         try {
             const { status, page, limit, search } = req.query;
@@ -70,7 +67,6 @@ export class CampaignController {
                 filter.status = status;
             }
 
-            // Add search functionality
             if (search) {
                 filter.$or = [
                     { title: { $regex: search, $options: 'i' } },
@@ -80,7 +76,6 @@ export class CampaignController {
                 ];
             }
 
-            // Pagination
             const p = parseInt(page as string) || 1;
             const l = parseInt(limit as string) || 10;
             const skip = (p - 1) * l;
@@ -109,7 +104,6 @@ export class CampaignController {
         }
     }
 
-    // Get a single campaign by ID
     async getCampaignById(req: Request, res: Response) {
         try {
             const { id } = req.params;
@@ -137,7 +131,6 @@ export class CampaignController {
         }
     }
 
-    // Get campaigns created by the logged-in user (Brand's campaigns)
     async getUserCampaigns(req: Request, res: Response) {
         try {
             const userId = (req as any).user._id;
@@ -158,14 +151,12 @@ export class CampaignController {
         }
     }
 
-    // Apply to campaign (Join campaign) - Influencer only
     async joinCampaign(req: Request, res: Response) {
         try {
             const userId = (req as any).user._id;
             const { id: campaignId } = req.params;
             const { message } = req.body;
 
-            // Check if campaign exists
             const campaign = await CampaignModel.findById(campaignId);
             if (!campaign) {
                 return res.status(404).json({
@@ -174,7 +165,6 @@ export class CampaignController {
                 });
             }
 
-            // Check if user already applied
             const existingApplication = await ApplicationModel.findOne({
                 influencerId: userId,
                 campaignId: campaignId
@@ -187,7 +177,6 @@ export class CampaignController {
                 });
             }
 
-            // Create application
             const application = await ApplicationModel.create({
                 influencerId: userId,
                 campaignId: campaignId,
@@ -196,7 +185,6 @@ export class CampaignController {
                 status: 'pending',
             });
 
-            // Create notification for brand
             try {
                 const influencer = (req as any).user;
                 await NotificationModel.create({
@@ -217,10 +205,8 @@ export class CampaignController {
                 });
             } catch (notifError) {
                 console.error('Failed to create notification:', notifError);
-                // Don't fail the whole request if notification fails
             }
 
-            // Increment applicants count
             await CampaignModel.findByIdAndUpdate(
                 campaignId,
                 { $inc: { applicantsCount: 1 } }
@@ -240,7 +226,6 @@ export class CampaignController {
         }
     }
 
-    // Update an existing campaign (Brand only)
     async updateCampaign(req: Request, res: Response) {
         try {
             const userId = (req as any).user._id;
@@ -255,7 +240,6 @@ export class CampaignController {
                 });
             }
 
-            // Check ownership
             if (campaign.creatorId.toString() !== userId.toString()) {
                 return res.status(403).json({
                     success: false,
@@ -283,7 +267,6 @@ export class CampaignController {
         }
     }
 
-    // Get aggregated stats for the logged-in brand
     async getBrandStats(req: Request, res: Response) {
         try {
             const userId = (req as any).user._id;
@@ -295,14 +278,12 @@ export class CampaignController {
             const totalBudgetAllocated = campaigns.reduce((sum, c) => sum + (c.budgetMax || 0), 0);
             const totalApplicants = campaigns.reduce((sum, c) => sum + (c.applicantsCount || 0), 0);
 
-            // Count accepted applications (unique influencers)
             const campaignIds = campaigns.map(c => c._id);
             const acceptedCount = await ApplicationModel.countDocuments({
                 campaignId: { $in: campaignIds },
                 status: 'accepted'
             });
 
-            // Group campaigns by category
             const categoryMap: Record<string, number> = {};
             for (const c of campaigns) {
                 const cat = c.category || 'General';
@@ -310,7 +291,6 @@ export class CampaignController {
             }
             const campaignsByCategory = Object.entries(categoryMap).map(([name, value]) => ({ name, value }));
 
-            // Per-campaign data for chart and table (most recent 7)
             const recentCampaigns = campaigns
                 .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
                 .slice(0, 7)

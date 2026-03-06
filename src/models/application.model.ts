@@ -37,12 +37,10 @@ const ApplicationSchema: Schema = new Schema({
     timestamps: true,
 });
 
-// Indexes for faster queries
 ApplicationSchema.index({ campaignId: 1, status: 1 });
 ApplicationSchema.index({ influencerId: 1 });
 ApplicationSchema.index({ brandId: 1 });
 
-// Compound index to prevent duplicate applications
 ApplicationSchema.index({ influencerId: 1, campaignId: 1 }, { unique: true });
 
 export const ApplicationModel = mongoose.model<IApplication>('Application', ApplicationSchema);

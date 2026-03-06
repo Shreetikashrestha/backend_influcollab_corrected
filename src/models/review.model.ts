@@ -19,10 +19,8 @@ const ReviewSchema: Schema = new Schema({
     timestamps: true
 });
 
-// Index for fetching reviews for a user
 ReviewSchema.index({ revieweeId: 1, createdAt: -1 });
 
-// Composite index to prevent duplicate reviews for the same campaign
 ReviewSchema.index({ reviewerId: 1, campaignId: 1 }, { unique: true });
 
 export const ReviewModel = mongoose.model<IReview>('Review', ReviewSchema);

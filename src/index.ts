@@ -3,22 +3,32 @@ dotenv.config();
 
 import { createServer } from 'http';
 import { PORT } from './config';
-import { connectDatabase } from './database/mongodb';
+import { connectDatabase, disconnectDatabase } from './database/mongodb';
 import { initializeSocket } from './config/socket';
-import app from './app';
+import { setupApp } from './app';
 
-// Create HTTP server and initialize socket.io
-const httpServer = createServer(app);
+const httpServer = createServer();
 const io = initializeSocket(httpServer);
 
-// Attach io to request for use in controllers (MUST be before routes)
-app.use((req: any, res, next) => {
-    req.io = io;
-    next();
-});
+const app = setupApp(io);
+httpServer.on('request', app);
 
 connectDatabase();
 
 httpServer.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running at: http://localhost:${PORT}`);
 });
+
+async function gracefulShutdown(signal: string) {
+    console.log(`\n🔄 ${signal} received. Shutting down gracefully...`);
+    await disconnectDatabase();
+    httpServer.close(() => {
+        console.log('✅ HTTP server closed.');
+        process.exit(0);
+    });
+    setTimeout(() => process.exit(0), 3000);
+}
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGUSR2', () => gracefulShutdown('SIGUSR2')); // nodemon uses SIGUSR2

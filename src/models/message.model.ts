@@ -42,7 +42,6 @@ const MessageSchema: Schema = new Schema({
     timestamps: true
 });
 
-// Index for performance
 MessageSchema.index({ conversationId: 1, createdAt: -1 });
 
 export const MessageModel = mongoose.model<IMessage>('Message', MessageSchema);

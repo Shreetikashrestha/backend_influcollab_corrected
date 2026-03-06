@@ -15,7 +15,6 @@ export class ReviewController {
                 });
             }
 
-            // Create review
             const review = await ReviewModel.create({
                 reviewerId,
                 revieweeId,
@@ -24,7 +23,6 @@ export class ReviewController {
                 comment
             });
 
-            // Update influencer average rating
             const stats = await ReviewModel.aggregate([
                 { $match: { revieweeId: review.revieweeId } },
                 {
@@ -53,7 +51,6 @@ export class ReviewController {
             });
         } catch (error: any) {
             console.error("Create Review Error:", error);
-            // Handle duplicate review error
             if (error.code === 11000) {
                 return res.status(400).json({
                     success: false,
@@ -67,7 +64,6 @@ export class ReviewController {
         }
     }
 
-    // Get reviews for a user
     async getReviews(req: Request, res: Response) {
         try {
             const { userId } = req.params;

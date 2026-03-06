@@ -3,7 +3,6 @@ import { Request } from "express";
 import path from "path";
 import fs from "fs";
 
-// Ensure the uploads directory exists
 const uploadDir = path.join(__dirname, '../../uploads');
 if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
@@ -21,14 +20,12 @@ const storage: StorageEngine = multer.diskStorage({
 });
 
 const fileFilter = (req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
-    // Accept images only
     if (!file.mimetype.startsWith('image/')) {
         return cb(new Error('Only image files are allowed!'));
     }
     cb(null, true);
 };
 
-// File filter for messages - accepts images, documents, and videos
 const messageFileFilter = (req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
     const allowedMimeTypes = [
         'image/jpeg', 'image/png', 'image/gif', 'image/webp',

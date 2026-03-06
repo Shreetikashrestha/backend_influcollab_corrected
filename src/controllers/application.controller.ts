@@ -5,7 +5,6 @@ import { CampaignModel } from "../models/campaign.model";
 import { UserModel } from "../models/user.model";
 
 export class ApplicationController {
-    // Create application (alternative to joinCampaign)
     async createApplication(req: Request, res: Response) {
         try {
             const userId = (req as any).user._id;
@@ -18,7 +17,6 @@ export class ApplicationController {
                 });
             }
 
-            // Check if campaign exists
             const campaign = await CampaignModel.findById(campaignId);
             if (!campaign) {
                 return res.status(404).json({
@@ -27,7 +25,6 @@ export class ApplicationController {
                 });
             }
 
-            // Check if user already applied
             const existingApplication = await ApplicationModel.findOne({
                 influencerId: userId,
                 campaignId: campaignId
@@ -40,7 +37,6 @@ export class ApplicationController {
                 });
             }
 
-            // Create application
             const application = await ApplicationModel.create({
                 influencerId: userId,
                 campaignId: campaignId,
@@ -49,7 +45,6 @@ export class ApplicationController {
                 status: 'pending',
             });
 
-            // Increment applicants count
             await CampaignModel.findByIdAndUpdate(
                 campaignId,
                 { $inc: { applicantsCount: 1 } }
@@ -69,14 +64,12 @@ export class ApplicationController {
         }
     }
 
-    // Get applications for a specific campaign (Brand only)
     async getCampaignApplications(req: Request, res: Response) {
         try {
             const userId = (req as any).user._id;
             const { campaignId } = req.params;
             const { status } = req.query;
 
-            // Verify campaign exists and belongs to the user
             const campaign = await CampaignModel.findById(campaignId);
             if (!campaign) {
                 return res.status(404).json({
@@ -85,7 +78,6 @@ export class ApplicationController {
                 });
             }
 
-            // Convert both to strings for comparison
             if (campaign.creatorId.toString() !== userId.toString()) {
                 return res.status(403).json({
                     success: false,
@@ -93,13 +85,11 @@ export class ApplicationController {
                 });
             }
 
-            // Build filter
             const filter: any = { campaignId };
             if (status) {
                 filter.status = status;
             }
 
-            // Get applications with influencer details
             const applications = await ApplicationModel.find(filter)
                 .populate('influencerId', 'fullName email isInfluencer profilePicture')
                 .populate('campaignId', 'title brandName category budgetMin budgetMax')
@@ -118,7 +108,6 @@ export class ApplicationController {
         }
     }
 
-    // Get applications submitted by the logged-in influencer
     async getInfluencerApplications(req: Request, res: Response) {
         try {
             const userId = (req as any).user._id;
@@ -147,7 +136,6 @@ export class ApplicationController {
         }
     }
 
-    // Update application status (Brand only - Accept/Reject)
     async updateApplicationStatus(req: Request, res: Response) {
         try {
             const user = (req as any).user;
@@ -162,7 +150,6 @@ export class ApplicationController {
             console.log('Application ID:', applicationId);
             console.log('New status:', status);
 
-            // Validate status
             if (!status || !['accepted', 'rejected'].includes(status)) {
                 return res.status(400).json({
                     success: false,
@@ -170,7 +157,6 @@ export class ApplicationController {
                 });
             }
 
-            // Get application
             const application = await ApplicationModel.findById(applicationId);
             if (!application) {
                 console.log('Application not found');
@@ -187,8 +173,6 @@ export class ApplicationController {
                 currentStatus: application.status
             });
 
-            // Verify the brand owns this application
-            // Convert both to strings for comparison
             const brandIdStr = application.brandId.toString();
             const userIdStr = userId.toString();
 
@@ -209,11 +193,9 @@ export class ApplicationController {
 
             console.log('✅ Permission granted, updating status');
 
-            // Update status
             application.status = status as 'accepted' | 'rejected';
             await application.save();
 
-            // Populate for response
             await application.populate('influencerId', 'fullName email');
             await application.populate('campaignId', 'title');
 
@@ -233,7 +215,6 @@ export class ApplicationController {
         }
     }
 
-    // Get single application by ID
     async getApplicationById(req: Request, res: Response) {
         try {
             const user = (req as any).user;
@@ -269,8 +250,6 @@ export class ApplicationController {
                 status: application.status
             });
 
-            // Check if user has permission to view this application
-            // Handle both populated and non-populated brandId/influencerId
             const brandIdStr = (application.brandId as any)?._id 
                 ? (application.brandId as any)._id.toString() 
                 : application.brandId.toString();
@@ -314,12 +293,10 @@ export class ApplicationController {
         }
     }
 
-    // Get influencer stats
     async getInfluencerStats(req: Request, res: Response) {
         try {
             const userId = (req as any).user._id;
 
-            // Use aggregation to count total and active campaigns
             const stats = await ApplicationModel.aggregate([
                 { $match: { influencerId: new mongoose.Types.ObjectId(userId) } },
                 {

@@ -2,7 +2,6 @@ import { Request, Response } from 'express';
 import { NotificationModel } from '../models/notification.model';
 
 export const NotificationController = {
-    // Get notifications for current user
     getNotifications: async (req: any, res: Response) => {
         try {
             const notifications = await NotificationModel.find({ userId: req.user._id })
@@ -15,7 +14,6 @@ export const NotificationController = {
         }
     },
 
-    // Get unread notification count
     getUnreadCount: async (req: any, res: Response) => {
         try {
             const count = await NotificationModel.countDocuments({
@@ -29,7 +27,6 @@ export const NotificationController = {
         }
     },
 
-    // Mark notification as read
     markAsRead: async (req: Request, res: Response) => {
         try {
             const { notificationId } = req.params;
@@ -44,7 +41,6 @@ export const NotificationController = {
         }
     },
 
-    // Mark all as read
     markAllRead: async (req: any, res: Response) => {
         try {
             await NotificationModel.updateMany({
@@ -61,7 +57,6 @@ export const NotificationController = {
         }
     },
 
-    // Delete notification
     deleteNotification: async (req: Request, res: Response) => {
         try {
             const { notificationId } = req.params;

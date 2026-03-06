@@ -1,9 +1,7 @@
 import request from 'supertest';
-import app from '../src/app';
+import app from '../src/test-app';
 import { NotificationModel } from '../src/models/notification.model';
 import { UserModel } from '../src/models/user.model';
-import { connectDatabase } from '../src/database/mongodb';
-import mongoose from 'mongoose';
 
 describe('Notification API', () => {
     let brandToken: string;
@@ -11,9 +9,7 @@ describe('Notification API', () => {
     let notificationId: string;
 
     beforeAll(async () => {
-        await connectDatabase();
-
-        // Clean up test user if exists
+        // Clean up any existing test user
         await UserModel.deleteOne({ email: 'testbrand@test.com' });
 
         // Register brand user
@@ -37,8 +33,16 @@ describe('Notification API', () => {
             });
 
         brandToken = loginRes.body.data.token;
+    });
 
-        // Create a test notification
+    afterAll(async () => {
+        // Clean up test data
+        await NotificationModel.deleteMany({ userId: brandUserId });
+        await UserModel.deleteOne({ email: 'testbrand@test.com' });
+    });
+
+    beforeEach(async () => {
+        // Create a test notification before each test
         const notification = await NotificationModel.create({
             userId: brandUserId,
             userRole: 'brand',
@@ -50,10 +54,9 @@ describe('Notification API', () => {
         notificationId = notification._id.toString();
     });
 
-    afterAll(async () => {
+    afterEach(async () => {
+        // Clean up notifications after each test
         await NotificationModel.deleteMany({ userId: brandUserId });
-        await UserModel.deleteOne({ email: 'testbrand@test.com' });
-        await mongoose.connection.close();
     });
 
     describe('GET /api/notifications', () => {
@@ -120,6 +123,12 @@ describe('Notification API', () => {
         });
 
         it('should return 404 for non-existent notification', async () => {
+            // First delete the notification
+            await request(app)
+                .delete(`/api/notifications/${notificationId}`)
+                .set('Authorization', `Bearer ${brandToken}`);
+
+            // Try to delete again - should return 404
             const response = await request(app)
                 .delete(`/api/notifications/${notificationId}`)
                 .set('Authorization', `Bearer ${brandToken}`);
@@ -149,18 +158,6 @@ describe('Notification API', () => {
     });
 
     describe('PATCH /api/notifications/:id/read - Edge cases', () => {
-        beforeAll(async () => {
-            // Create a new notification for testing
-            const notification = await NotificationModel.create({
-                userId: brandUserId,
-                userRole: 'brand',
-                type: 'test',
-                title: 'Test Notification 2',
-                message: 'Test message 2'
-            });
-            notificationId = notification._id.toString();
-        });
-
         it('should mark already read notification as read', async () => {
             // Mark as read first time
             await request(app)

@@ -1,4 +1,3 @@
-// HATEOAS Helper - Hypermedia As The Engine Of Application State
 
 export interface Link {
     rel: string;
@@ -20,7 +19,6 @@ export const addCampaignLinks = (campaign: any, userId?: string): any => {
         }
     ];
 
-    // If user is the campaign owner
     if (userId && campaign.creatorId.toString() === userId.toString()) {
         links.push(
             {
@@ -40,7 +38,6 @@ export const addCampaignLinks = (campaign: any, userId?: string): any => {
             }
         );
     } else {
-        // If user is not the owner (influencer)
         links.push({
             rel: 'apply',
             href: `/api/campaigns/${campaign._id}/join`,
@@ -68,7 +65,6 @@ export const addApplicationLinks = (application: any, userId?: string): any => {
         }
     ];
 
-    // If user is the brand owner
     if (userId && application.brandId.toString() === userId.toString()) {
         if (application.status === 'pending') {
             links.push(

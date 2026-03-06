@@ -13,12 +13,8 @@ export const createPaymentIntent = async (req: any, res: Response) => {
             return res.status(404).json({ success: false, message: 'Campaign not found' });
         }
 
-        // Calculate 15% platform fee
         const platformFee = amount * 0.15;
         const netAmount = amount - platformFee;
-
-        // In a real scenario, we would call Stripe here
-        // const paymentIntent = await stripe.paymentIntents.create({ ... })
 
         const transaction = new Transaction({
             campaignId,

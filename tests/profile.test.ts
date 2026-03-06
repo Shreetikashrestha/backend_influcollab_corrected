@@ -1,17 +1,15 @@
 import request from 'supertest';
-import app from '../src/app';
+import app from '../src/test-app';
+import mongoose from 'mongoose';
 import { UserModel } from '../src/models/user.model';
 import { InfluencerProfileModel } from '../src/models/influencer_profile.model';
 import { BrandProfileModel } from '../src/models/brand_profile.model';
-import { connectDatabase } from '../src/database/mongodb';
-import mongoose from 'mongoose';
 
 describe('Profile API', () => {
     let influencerToken: string;
     let brandToken: string;
 
     beforeAll(async () => {
-        await connectDatabase();
 
         // Clean up stale profiles and test users from previous runs
         await InfluencerProfileModel.deleteOne({ username: 'testinfluencer3' });
@@ -61,7 +59,6 @@ describe('Profile API', () => {
         await BrandProfileModel.deleteOne({ companyName: 'Test Brand 4' });
         await UserModel.deleteOne({ email: 'testinfluencer3@test.com' });
         await UserModel.deleteOne({ email: 'testbrand4@test.com' });
-        await mongoose.connection.close();
     });
 
     describe('GET /api/profiles/me', () => {

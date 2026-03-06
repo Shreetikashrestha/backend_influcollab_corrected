@@ -4,12 +4,10 @@ import { BrandProfileModel } from '../models/brand_profile.model';
 import { UserModel } from '../models/user.model';
 
 export const ProfileController = {
-    // Get current user's profile
     getMyProfile: async (req: any, res: Response) => {
         try {
             let profile;
             if (req.user.isInfluencer) {
-                // Atomic upsert to prevent race conditions (duplicate key errors)
                 profile = await InfluencerProfileModel.findOneAndUpdate(
                     { userId: req.user._id },
                     {
@@ -42,7 +40,6 @@ export const ProfileController = {
         }
     },
 
-    // Get profile by userId
     getProfileByUserId: async (req: Request, res: Response) => {
         try {
             const { userId } = req.params;
@@ -65,10 +62,8 @@ export const ProfileController = {
         }
     },
 
-    // Update profile
     updateProfile: async (req: any, res: Response) => {
         try {
-            // If a logo file was uploaded, add its URL to the body
             const updateData = { ...req.body };
             if (req.file) {
                 updateData.logo = `/uploads/${req.file.filename}`;
@@ -95,7 +90,6 @@ export const ProfileController = {
         }
     },
 
-    // Get all influencers with filtering
     getAllInfluencers: async (req: Request, res: Response) => {
         try {
             const { niche, category, search } = req.query;
@@ -109,8 +103,6 @@ export const ProfileController = {
                 query.categories = { $in: [category] };
             }
 
-            // If search is provided, we might want to search by username or join with user model
-            // For now, let's search by username in the InfluencerProfile
             if (search) {
                 query.username = { $regex: search, $options: 'i' };
             }

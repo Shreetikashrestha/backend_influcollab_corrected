@@ -30,7 +30,6 @@ const ConversationSchema: Schema = new Schema({
     timestamps: true
 });
 
-// Index for performance
 ConversationSchema.index({ 'participants.user': 1 });
 
 export const ConversationModel = mongoose.model<IConversation>('Conversation', ConversationSchema);

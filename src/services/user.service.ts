@@ -14,23 +14,15 @@ export class UserService {
     }
 
     async registerUser(data: CreateUserDTO) {
-        // Check for duplicate email
         const checkEmail = await this.userRepository.getUserByEmail(data.email);
         if (checkEmail) {
             throw new HttpError(403, "Email already in use");
         }
         console.log(checkEmail)
-        // Check for duplicate username
-        // const checkUsername = await userRepository.getUserByUsername(data.username);
-        // if (checkUsername) {
-        //     throw new HttpError(403, "Username already in use");
-        // }
 
-        // Hash password
         const hashedPassword = await bcrypt.hash(data.password, 10);
         data.password = hashedPassword;
 
-        // Create new user
         const newUser = await this.userRepository.createUser(data);
 
         return newUser;
@@ -47,10 +39,8 @@ export class UserService {
             throw new HttpError(401, "Invalid credentials");
         }
 
-        // Generate JWT
         const payload = {
             id: existingUser._id,
-            // username: existingUser.username,
             email: existingUser.email,
             role: existingUser.role,
             isInfluencer: existingUser.isInfluencer
@@ -91,15 +81,12 @@ export class UserService {
     async forgotPassword(email: string) {
         const user = await this.userRepository.getUserByEmail(email);
         if (!user) {
-            // Return null to hide user existence in controller
             return null;
         }
 
-        // Generate token
         const crypto = require('crypto');
         const resetToken = crypto.randomBytes(32).toString('hex');
 
-        // Hash token for database storage
         const hashedToken = await bcrypt.hash(resetToken, 10);
         const resetExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
 
@@ -112,12 +99,10 @@ export class UserService {
     }
 
     async resetPassword(token: string, newPassword: any) {
-        // Find users with active reset tokens
         const usersWithTokens = await UserModel.find({
             resetPasswordExpires: { $gt: Date.now() }
         });
 
-        // Loop through users and compare provided token with hashed tokens
         let targetUser = null;
         for (const user of usersWithTokens) {
             if (user.resetPasswordToken && await bcrypt.compare(token, user.resetPasswordToken)) {
@@ -145,13 +130,11 @@ export class UserService {
             throw new HttpError(404, "User not found");
         }
 
-        // Verify current password
         const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
         if (!isPasswordValid) {
             throw new HttpError(401, "Current password is incorrect");
         }
 
-        // Hash new password
         const hashedPassword = await bcrypt.hash(newPassword, 10);
         await this.userRepository.updateOneUser(userId, { password: hashedPassword } as any);
 

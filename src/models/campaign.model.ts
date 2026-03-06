@@ -41,7 +41,6 @@ const CampaignSchema: Schema = new Schema({
     timestamps: true,
 });
 
-// Index for faster queries
 CampaignSchema.index({ status: 1, deadline: 1 });
 CampaignSchema.index({ creatorId: 1 });
 
